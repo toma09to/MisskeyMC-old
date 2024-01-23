@@ -1,0 +1,15 @@
+misskey:
+  address: "http://localhost:3000"
+  token: ""
+  visibility: "public"
+  localOnly: false
+  channelId: ""
+  prefix: "[Server] "
+  debug: false
+  serverUrl: "https://misskey.example.com"
+
+message:
+  enabledMessage: "サーバーが起動しました"
+  disabledMessage: "サーバーが終了しました"
+  joinMessage: "%player%が参加しました"
+  quitMessage: "%player%が退出しました"
