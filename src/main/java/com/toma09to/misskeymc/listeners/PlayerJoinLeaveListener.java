@@ -31,6 +31,8 @@ public class PlayerJoinLeaveListener implements Listener {
         final Component misskeyInfo = MiniMessage.miniMessage().deserialize(
                 "あなたも<green><u><click:open_url:'" + serverUrl + "'>Misskeyサーバー</click></u></green>に参加しませんか？"
         );
+
+        joinPlayer.sendMessage(misskeyInfo);
         misskey.sendPost(message);
     }
 
