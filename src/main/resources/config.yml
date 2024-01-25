@@ -13,3 +13,4 @@ message:
   disabledMessage: "サーバーが終了しました"
   joinMessage: "%player%が参加しました"
   quitMessage: "%player%が退出しました"
+  chatMessage: "<%player%> %content%"

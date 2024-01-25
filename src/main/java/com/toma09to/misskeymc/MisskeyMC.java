@@ -1,6 +1,7 @@
 package com.toma09to.misskeymc;
 
 import com.toma09to.misskeymc.listeners.PlayerJoinLeaveListener;
+import com.toma09to.misskeymc.listeners.PlayerChatListener;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import com.toma09to.misskeymc.api.MisskeyClient;
@@ -27,11 +28,16 @@ public final class MisskeyMC extends JavaPlugin {
         String quitMessage = getConfig().getString("message.quitMessage");
         this.enabledMessage = getConfig().getString("message.enabledMessage");
         this.disabledMessage = getConfig().getString("message.disabledMessage");
+        String chatMessage = getConfig().getString("message.chatMessage");
 
         misskey = new MisskeyClient(address, token, visibility, localOnly, channelId, prefix, isDebug);
 
         Bukkit.getServer().getPluginManager().registerEvents(
                 new PlayerJoinLeaveListener(misskey, serverUrl, joinMessage, quitMessage),
+                this
+        );
+        Bukkit.getServer().getPluginManager().registerEvents(
+                new PlayerChatListener(misskey, chatMessage),
                 this
         );
 
