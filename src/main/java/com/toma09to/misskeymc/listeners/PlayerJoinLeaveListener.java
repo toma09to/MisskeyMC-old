@@ -33,7 +33,7 @@ public class PlayerJoinLeaveListener implements Listener {
         );
 
         joinPlayer.sendMessage(misskeyInfo);
-        misskey.sendPost(message);
+        misskey.postNote(message);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -41,6 +41,6 @@ public class PlayerJoinLeaveListener implements Listener {
         final String playerName = event.getPlayer().getName();
         final String message = quitMessageTemplate.replace("%player%", playerName);
 
-        misskey.sendPost(message);
+        misskey.postNote(message);
     }
 }

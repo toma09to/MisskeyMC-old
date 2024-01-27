@@ -10,9 +10,9 @@ public class PlayerChatListener implements Listener {
     private final MisskeyClient misskey;
     private final String chatMessageTemplate;
 
-    public PlayerChatListener(MisskeyClient misskey, String chat) {
+    public PlayerChatListener(MisskeyClient misskey, String template) {
         this.misskey = misskey;
-        this.chatMessageTemplate = chat;
+        this.chatMessageTemplate = template;
     }
 
     @EventHandler
@@ -21,6 +21,6 @@ public class PlayerChatListener implements Listener {
         final String content = PlainTextComponentSerializer.plainText().serialize(event.message());
         final String message = chatMessageTemplate.replace("%player%", playerName).replace("%content%", content);
 
-        misskey.sendPost(message);
+        misskey.postNote(message);
     }
 }

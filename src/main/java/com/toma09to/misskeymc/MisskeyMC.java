@@ -1,5 +1,7 @@
 package com.toma09to.misskeymc;
 
+import com.toma09to.misskeymc.api.MisskeyNoteScheduler;
+import com.toma09to.misskeymc.listeners.MisskeyChatListener;
 import com.toma09to.misskeymc.listeners.PlayerJoinLeaveListener;
 import com.toma09to.misskeymc.listeners.PlayerChatListener;
 import org.bukkit.Bukkit;
@@ -10,6 +12,7 @@ public final class MisskeyMC extends JavaPlugin {
     private MisskeyClient misskey;
     private String enabledMessage;
     private String disabledMessage;
+    private MisskeyNoteScheduler scheduler;
 
     @Override
     public void onEnable() {
@@ -28,7 +31,8 @@ public final class MisskeyMC extends JavaPlugin {
         String quitMessage = getConfig().getString("message.quitMessage");
         this.enabledMessage = getConfig().getString("message.enabledMessage");
         this.disabledMessage = getConfig().getString("message.disabledMessage");
-        String chatMessage = getConfig().getString("message.chatMessage");
+        String mcToMskyMessage = getConfig().getString("message.minecraftToMisskeyMessage");
+        String mskyToMcMessage = getConfig().getString("message.misskeyToMinecraftMessage");
 
         misskey = new MisskeyClient(address, token, visibility, localOnly, channelId, prefix, isDebug);
 
@@ -37,15 +41,23 @@ public final class MisskeyMC extends JavaPlugin {
                 this
         );
         Bukkit.getServer().getPluginManager().registerEvents(
-                new PlayerChatListener(misskey, chatMessage),
+                new PlayerChatListener(misskey, mcToMskyMessage),
+                this
+        );
+        Bukkit.getServer().getPluginManager().registerEvents(
+                new MisskeyChatListener(mskyToMcMessage),
                 this
         );
 
-        misskey.sendPost(enabledMessage);
+        scheduler = new MisskeyNoteScheduler(misskey);
+        scheduler.runTaskTimerAsynchronously(this, 0, 20);
+
+        misskey.postNote(enabledMessage);
     }
 
     @Override
     public void onDisable() {
-        misskey.sendPost(disabledMessage);
+        scheduler.stopTask();
+        misskey.postNote(disabledMessage);
     }
 }
