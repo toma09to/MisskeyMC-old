@@ -12,7 +12,7 @@ public class UsersDatabase {
         connection = DriverManager.getConnection("jdbc:sqlite:" + path);
         try (Statement statement = connection.createStatement()) {
             statement.execute("""
-                CREATE TABLE IF NOT EXISTS authorized_players (
+                CREATE TABLE authorized_players (
                     uuid TEXT PRIMARY KEY,
                     username TEXT NOT NULL,
                     misskey_userid TEXT NOT NULL
