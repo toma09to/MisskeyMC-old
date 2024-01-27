@@ -1,6 +1,7 @@
 package com.toma09to.misskeymc;
 
 import com.toma09to.misskeymc.api.MisskeyNoteScheduler;
+import com.toma09to.misskeymc.database.UsersDatabase;
 import com.toma09to.misskeymc.listeners.MisskeyChatListener;
 import com.toma09to.misskeymc.listeners.PlayerJoinLeaveListener;
 import com.toma09to.misskeymc.listeners.PlayerChatListener;
@@ -8,11 +9,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import com.toma09to.misskeymc.api.MisskeyClient;
 
+import java.sql.SQLException;
+
 public final class MisskeyMC extends JavaPlugin {
     private MisskeyClient misskey;
     private String enabledMessage;
     private String disabledMessage;
     private MisskeyNoteScheduler scheduler;
+    private UsersDatabase database;
 
     @Override
     public void onEnable() {
@@ -33,6 +37,17 @@ public final class MisskeyMC extends JavaPlugin {
         this.disabledMessage = getConfig().getString("message.disabledMessage");
         String mcToMskyMessage = getConfig().getString("message.minecraftToMisskeyMessage");
         String mskyToMcMessage = getConfig().getString("message.misskeyToMinecraftMessage");
+
+        try {
+            if (!getDataFolder().exists()) {
+                getDataFolder().mkdirs();
+            }
+            database = new UsersDatabase(getDataFolder().getAbsolutePath() + "/users.db");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Bukkit.getLogger().warning("Failed to connect to the database!" + e.getMessage());
+            Bukkit.getPluginManager().disablePlugin(this);
+        }
 
         misskey = new MisskeyClient(address, token, visibility, localOnly, channelId, prefix, isDebug);
 
