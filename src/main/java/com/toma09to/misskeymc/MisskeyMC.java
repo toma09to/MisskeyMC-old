@@ -72,6 +72,11 @@ public final class MisskeyMC extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        try {
+            database.closeConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         scheduler.stopTask();
         misskey.postNote(disabledMessage);
     }
