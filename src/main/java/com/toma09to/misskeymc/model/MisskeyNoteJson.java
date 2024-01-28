@@ -4,6 +4,7 @@ public class MisskeyNoteJson {
     public String id;
     public MisskeyUser user;
     public String text;
+    public String visibility;
 
     public static class MisskeyUser {
         public String id;

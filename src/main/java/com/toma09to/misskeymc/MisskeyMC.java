@@ -1,8 +1,10 @@
 package com.toma09to.misskeymc;
 
+import com.toma09to.misskeymc.api.MisskeyAuthorizationScheduler;
 import com.toma09to.misskeymc.api.MisskeyNoteScheduler;
 import com.toma09to.misskeymc.database.UsersDatabase;
 import com.toma09to.misskeymc.listeners.MisskeyChatListener;
+import com.toma09to.misskeymc.listeners.PlayerCheckAuthorizedListener;
 import com.toma09to.misskeymc.listeners.PlayerJoinLeaveListener;
 import com.toma09to.misskeymc.listeners.PlayerChatListener;
 import org.bukkit.Bukkit;
@@ -15,7 +17,8 @@ public final class MisskeyMC extends JavaPlugin {
     private MisskeyClient misskey;
     private String enabledMessage;
     private String disabledMessage;
-    private MisskeyNoteScheduler scheduler;
+    private MisskeyNoteScheduler noteScheduler;
+    private MisskeyAuthorizationScheduler authorizationScheduler;
     private UsersDatabase database;
 
     @Override
@@ -37,6 +40,9 @@ public final class MisskeyMC extends JavaPlugin {
         this.disabledMessage = getConfig().getString("message.disabledMessage");
         String mcToMskyMessage = getConfig().getString("message.minecraftToMisskeyMessage");
         String mskyToMcMessage = getConfig().getString("message.misskeyToMinecraftMessage");
+
+        boolean requireAuthorization = getConfig().getBoolean("authorization.require");
+        String contact = getConfig().getString("authorization.contact");
 
         try {
             if (!getDataFolder().exists()) {
@@ -64,10 +70,20 @@ public final class MisskeyMC extends JavaPlugin {
                 this
         );
 
-        scheduler = new MisskeyNoteScheduler(misskey);
-        scheduler.runTaskTimerAsynchronously(this, 0, 20);
+        noteScheduler = new MisskeyNoteScheduler(misskey);
+        noteScheduler.runTaskTimerAsynchronously(this, 0, 20);
 
-        misskey.postNote(enabledMessage);
+        String botName = misskey.username();
+        if (requireAuthorization) {
+            Bukkit.getServer().getPluginManager().registerEvents(
+                    new PlayerCheckAuthorizedListener(database, serverUrl, botName, contact),
+                    this
+            );
+            authorizationScheduler = new MisskeyAuthorizationScheduler(misskey, database);
+            authorizationScheduler.runTaskTimerAsynchronously(this, 0, 100);
+        }
+
+        misskey.postNote(enabledMessage, null);
     }
 
     @Override
@@ -77,7 +93,8 @@ public final class MisskeyMC extends JavaPlugin {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        scheduler.stopTask();
-        misskey.postNote(disabledMessage);
+        noteScheduler.stopTask();
+        authorizationScheduler.stopTask();
+        misskey.postNote(disabledMessage, null);
     }
 }

@@ -15,3 +15,13 @@ message:
   quitMessage: "%player%が退出しました"
   minecraftToMisskeyMessage: "<%player%> %content%"
   misskeyToMinecraftMessage: "<%name%> %content%"
+
+authorization:
+  require: false
+  contact: "contact@example.com"
+
+database:
+  host: "localhost:3306"
+  database: ""
+  username: ""
+  password: ""

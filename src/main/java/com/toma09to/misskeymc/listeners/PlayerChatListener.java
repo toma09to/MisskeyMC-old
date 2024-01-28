@@ -21,6 +21,6 @@ public class PlayerChatListener implements Listener {
         final String content = PlainTextComponentSerializer.plainText().serialize(event.message());
         final String message = chatMessageTemplate.replace("%player%", playerName).replace("%content%", content);
 
-        misskey.postNote(message);
+        misskey.postNote(message, null);
     }
 }
