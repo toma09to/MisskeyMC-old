@@ -1,8 +1,10 @@
 package com.toma09to.misskeymc;
 
+import com.toma09to.misskeymc.api.MisskeyAuthorizationScheduler;
 import com.toma09to.misskeymc.api.MisskeyNoteScheduler;
 import com.toma09to.misskeymc.database.UsersDatabase;
 import com.toma09to.misskeymc.listeners.MisskeyChatListener;
+import com.toma09to.misskeymc.listeners.PlayerCheckAuthorizedListener;
 import com.toma09to.misskeymc.listeners.PlayerJoinLeaveListener;
 import com.toma09to.misskeymc.listeners.PlayerChatListener;
 import org.bukkit.Bukkit;
@@ -15,7 +17,8 @@ public final class MisskeyMC extends JavaPlugin {
     private MisskeyClient misskey;
     private String enabledMessage;
     private String disabledMessage;
-    private MisskeyNoteScheduler scheduler;
+    private MisskeyNoteScheduler noteScheduler;
+    private MisskeyAuthorizationScheduler authorizationScheduler;
     private UsersDatabase database;
 
     @Override
@@ -38,13 +41,18 @@ public final class MisskeyMC extends JavaPlugin {
         String mcToMskyMessage = getConfig().getString("message.minecraftToMisskeyMessage");
         String mskyToMcMessage = getConfig().getString("message.misskeyToMinecraftMessage");
 
+        boolean requireAuthorization = getConfig().getBoolean("authorization.require");
+        String contact = getConfig().getString("authorization.contact");
+
+        String dbHost = getConfig().getString("database.host");
+        String dbDatabase = getConfig().getString("database.database");
+        String dbUser = getConfig().getString("database.username");
+        String dbPassword = getConfig().getString("database.password");
+
         try {
-            if (!getDataFolder().exists()) {
-                getDataFolder().mkdirs();
-            }
-            database = new UsersDatabase(getDataFolder().getAbsolutePath() + "/users.db");
+            // Connect to MySQL
+            database = new UsersDatabase(dbHost, dbDatabase, dbUser, dbPassword);
         } catch (SQLException e) {
-            e.printStackTrace();
             Bukkit.getLogger().warning("Failed to connect to the database!" + e.getMessage());
             Bukkit.getPluginManager().disablePlugin(this);
         }
@@ -64,10 +72,20 @@ public final class MisskeyMC extends JavaPlugin {
                 this
         );
 
-        scheduler = new MisskeyNoteScheduler(misskey);
-        scheduler.runTaskTimerAsynchronously(this, 0, 20);
+        noteScheduler = new MisskeyNoteScheduler(misskey);
+        noteScheduler.runTaskTimerAsynchronously(this, 0, 20);
 
-        misskey.postNote(enabledMessage);
+        String botName = misskey.username();
+        if (requireAuthorization) {
+            Bukkit.getServer().getPluginManager().registerEvents(
+                    new PlayerCheckAuthorizedListener(database, serverUrl, botName, contact),
+                    this
+            );
+            authorizationScheduler = new MisskeyAuthorizationScheduler(misskey, database);
+            authorizationScheduler.runTaskTimerAsynchronously(this, 0, 100);
+        }
+
+        misskey.postNote(enabledMessage, null);
     }
 
     @Override
@@ -75,9 +93,10 @@ public final class MisskeyMC extends JavaPlugin {
         try {
             database.closeConnection();
         } catch (SQLException e) {
-            e.printStackTrace();
+            Bukkit.getLogger().warning("Failed to close connection to the database!" + e.getMessage());
         }
-        scheduler.stopTask();
-        misskey.postNote(disabledMessage);
+        noteScheduler.stopTask();
+        authorizationScheduler.stopTask();
+        misskey.postNote(disabledMessage, null);
     }
 }

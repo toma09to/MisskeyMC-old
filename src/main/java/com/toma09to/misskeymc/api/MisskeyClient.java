@@ -2,6 +2,7 @@ package com.toma09to.misskeymc.api;
 
 import com.google.gson.Gson;
 import com.toma09to.misskeymc.model.MisskeyNoteJson;
+import com.toma09to.misskeymc.model.MisskeyNoteJson.MisskeyUser;
 import com.toma09to.misskeymc.model.MisskeyPostJson;
 import org.bukkit.Bukkit;
 
@@ -22,7 +23,9 @@ public class MisskeyClient {
     private final boolean isDebug;
     private final HttpClient client;
     private final MisskeyLogger log;
-    private String sinceId;
+    private final Gson gson;
+    private String channelSinceId;
+    private String mentionSinceId;
 
     public MisskeyClient(String address, String token, String visibility, boolean localOnly, String channelId, String prefix, boolean isDebug) {
         this.address = address;
@@ -36,42 +39,12 @@ public class MisskeyClient {
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
         this.log = new MisskeyLogger(Bukkit.getLogger());
-        this.sinceId = null;
-    }
-    public void postNote(String message) {
-        String url = this.address + "/api/notes/create";
-        MisskeyPostJson body = MisskeyPostJson.notesCreate(token, visibility, null, localOnly, channelId, prefix + message);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body.json()))
-                .build();
-
-        if (isDebug) {
-            log.info("url: " + url);
-            log.info("body: " + body);
-        }
-
-        try {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                log.warning("Misskey server doesn't send 200 OK");
-                log.warning(String.valueOf(response.statusCode()));
-                log.warning(response.body());
-            }
-        } catch (IOException e) {
-            log.warning("IOException was thrown");
-        } catch (InterruptedException e) {
-            log.warning("InterruptedException was thrown");
-        }
+        this.gson = new Gson();
+        this.channelSinceId = null;
+        this.mentionSinceId = null;
     }
 
-    public MisskeyNoteJson getNote() {
-        String url = this.address + "/api/channels/timeline";
-        MisskeyPostJson requestBody = MisskeyPostJson.channelsTimeline(token, channelId, sinceId);
-
+    private String responseBody(String url, MisskeyPostJson requestBody) {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
@@ -80,7 +53,7 @@ public class MisskeyClient {
 
         if (isDebug) {
             log.info("url: " + url);
-            log.info("body: " + requestBody);
+            log.info("body: " + requestBody.json());
         }
 
         String responseBody;
@@ -99,11 +72,47 @@ public class MisskeyClient {
             return null;
         }
 
-        MisskeyNoteJson[] messages = new Gson().fromJson(responseBody, MisskeyNoteJson[].class);
+        return responseBody;
+    }
+    public String username() {
+        MisskeyPostJson requestBody = MisskeyPostJson.i(token);
+
+        String responseBody = responseBody(address + "/api/i", requestBody);
+        if (responseBody == null) return null;
+
+        return gson.fromJson(responseBody, MisskeyUser.class).username;
+    }
+    public void postNote(String message, String replyId) {
+        MisskeyPostJson requestBody = MisskeyPostJson.notesCreate(token, visibility, null, localOnly, replyId, channelId, prefix + message);
+
+        responseBody(address + "/api/notes/create", requestBody);
+    }
+
+    public MisskeyNoteJson getNote() {
+        MisskeyPostJson requestBody = MisskeyPostJson.channelsTimeline(token, channelId, channelSinceId);
+
+        String responseBody = responseBody(address + "/api/channels/timeline", requestBody);
+
+        MisskeyNoteJson[] messages = gson.fromJson(responseBody, MisskeyNoteJson[].class);
         if (messages.length == 0) return null;
         if (messages[0].user.isBot) return null;
 
-        sinceId = messages[0].id;
+        channelSinceId = messages[0].id;
         return messages[0];
+    }
+    public MisskeyNoteJson getDirectMessage() {
+        // 一番最初のメッセージには返信しないようにする
+        boolean isFirst = mentionSinceId == null;
+
+        MisskeyPostJson requestBody = MisskeyPostJson.notesMentions(token, mentionSinceId);
+
+        String responseBody = responseBody(address + "/api/notes/mentions", requestBody);
+
+        MisskeyNoteJson[] messages = gson.fromJson(responseBody, MisskeyNoteJson[].class);
+        if (messages.length == 0) return null;
+        if (messages[0].user.isBot) return null;
+
+        mentionSinceId = messages[0].id;
+        return !isFirst ? messages[0] : null;
     }
 }
