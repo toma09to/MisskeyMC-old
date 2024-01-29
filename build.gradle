@@ -19,6 +19,7 @@ repositories {
 
 dependencies {
     compileOnly "io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT"
+    runtimeOnly 'con.mysql:mysql-connector-j'
 }
 
 def targetJavaVersion = 17

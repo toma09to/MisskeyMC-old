@@ -12,7 +12,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
+import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
 
@@ -32,25 +32,29 @@ public class PlayerCheckAuthorizedListener implements Listener {
     public void onPlayerJoin(AsyncPlayerPreLoginEvent event) {
         PlayerProfile player = event.getPlayerProfile();
         try {
-            if (!database.isAuthorized(player)) {
+            if (!database.isAuthorized(player.getId().toString())) {
                 String token = database.generateToken(player);
-                String url = serverUrl + "/@" + botName;
-
-                final Component kickMessage = Component.text("このサーバーへの参加には認証が必要です").decorate(TextDecoration.BOLD)
-                        .appendNewline()
-                        .append(Component.text(url).clickEvent(ClickEvent.openUrl(url)).decorate(TextDecoration.UNDERLINED))
-                        .append(Component.text("へ以下のトークンをDMで送ってください"))
-                        .appendNewline()
-                        .append(Component.text(token).clickEvent(ClickEvent.copyToClipboard(token)));
+                final Component kickMessage = getKickMessage(token);
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST, kickMessage);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
             new MisskeyLogger(Bukkit.getLogger()).warning(e.getMessage());
             final Component errorMessage = Component.text("エラーが発生しました").color(TextColor.color(0xFF5555))
                     .appendNewline()
                     .append(Component.text(contact + "までご連絡ください"));
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, errorMessage);
         }
+    }
+
+    @NotNull
+    private Component getKickMessage(String token) {
+        String url = serverUrl + "/@" + botName;
+
+        return Component.text("このサーバーへの参加には認証が必要です").decorate(TextDecoration.BOLD)
+                .appendNewline()
+                .append(Component.text(url).decorate(TextDecoration.UNDERLINED).clickEvent(ClickEvent.openUrl(url)))
+                .append(Component.text("へ以下のトークンをDMで送ってください"))
+                .appendNewline()
+                .append(Component.text(token).color(TextColor.color(0x55FF55)));
     }
 }

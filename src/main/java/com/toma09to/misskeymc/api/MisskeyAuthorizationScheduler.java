@@ -31,7 +31,7 @@ public class MisskeyAuthorizationScheduler extends BukkitRunnable {
         if (challenge == null) return;
 
         if (Objects.equals(challenge.visibility, "specified")) {
-            String token = challenge.text.replace("@" + client.username() + " ", "");
+            String token = challenge.text.replace("@" + client.username(), "").trim();
             String userId = challenge.user.id;
 
             Bukkit.getLogger().info(token);
@@ -44,6 +44,7 @@ public class MisskeyAuthorizationScheduler extends BukkitRunnable {
                 }
             } catch (SQLException e) {
                 client.postNote("認証中にエラーが発生しました。再度お試しください。", challenge.id);
+                Bukkit.getLogger().warning(e.getMessage());
             }
         }
     }

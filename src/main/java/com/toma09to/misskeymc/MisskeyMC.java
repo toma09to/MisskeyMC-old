@@ -44,13 +44,15 @@ public final class MisskeyMC extends JavaPlugin {
         boolean requireAuthorization = getConfig().getBoolean("authorization.require");
         String contact = getConfig().getString("authorization.contact");
 
+        String dbHost = getConfig().getString("database.host");
+        String dbDatabase = getConfig().getString("database.database");
+        String dbUser = getConfig().getString("database.username");
+        String dbPassword = getConfig().getString("database.password");
+
         try {
-            if (!getDataFolder().exists()) {
-                getDataFolder().mkdirs();
-            }
-            database = new UsersDatabase(getDataFolder().getAbsolutePath() + "/users.db");
+            // Connect to MySQL
+            database = new UsersDatabase(dbHost, dbDatabase, dbUser, dbPassword);
         } catch (SQLException e) {
-            e.printStackTrace();
             Bukkit.getLogger().warning("Failed to connect to the database!" + e.getMessage());
             Bukkit.getPluginManager().disablePlugin(this);
         }
@@ -91,7 +93,7 @@ public final class MisskeyMC extends JavaPlugin {
         try {
             database.closeConnection();
         } catch (SQLException e) {
-            e.printStackTrace();
+            Bukkit.getLogger().warning("Failed to close connection to the database!" + e.getMessage());
         }
         noteScheduler.stopTask();
         authorizationScheduler.stopTask();
