@@ -1,6 +1,7 @@
 package com.toma09to.misskeymc.database;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
+import com.toma09to.misskeymc.api.MisskeyLogger;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -8,38 +9,58 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 public class UsersDatabase {
-    private final Connection connection;
+    private final MisskeyLogger log;
+    private final String url;
+    private final String username;
+    private final String password;
 
-    public UsersDatabase(String host, String database, String user, String pass) throws SQLException {
-        String url = "jdbc:mySQL://" + host + "/" + database;
-        connection = DriverManager.getConnection(url, user, pass);
-        connection.setAutoCommit(true);
-        try (Statement statement = connection.createStatement()) {
-            statement.execute("""
-                CREATE TABLE IF NOT EXISTS authorized_players (
-                    uuid TEXT NOT NULL,
-                    username TEXT NOT NULL,
-                    misskey_user_id TEXT NOT NULL
-                )
-            """);
-            statement.execute("""
-                CREATE TABLE IF NOT EXISTS tokens (
-                    token TEXT NOT NULL,
-                    uuid TEXT NOT NULL,
-                    username TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                )
-            """);
+    private Connection getConnection() throws SQLException {
+        try {
+            return DriverManager.getConnection(url, username, password);
+        } catch (SQLException e) {
+            log.warning("Failed to connect to the database!");
+            log.warning(e.getMessage());
+            throw e;
         }
     }
 
-    public void closeConnection() throws SQLException {
-        if (connection != null && !connection.isClosed()) {
+    public UsersDatabase(MisskeyLogger log, String host, String database, String user, String pass) throws SQLException {
+        this.log = log;
+        url = "jdbc:mySQL://" + host + "/" + database;
+        username = user;
+        password = pass;
+
+        Connection connection = getConnection();
+
+        try {
+            Statement statement = connection.createStatement();
+            statement.execute("""
+                        CREATE TABLE IF NOT EXISTS authorized_players (
+                            uuid TEXT NOT NULL,
+                            username TEXT NOT NULL,
+                            misskey_user_id TEXT NOT NULL
+                        )
+                    """);
+            statement.execute("""
+                        CREATE TABLE IF NOT EXISTS tokens (
+                            token TEXT NOT NULL,
+                            uuid TEXT NOT NULL,
+                            username TEXT NOT NULL,
+                            created_at TEXT NOT NULL
+                        )
+                    """);
+        } catch (SQLException e) {
+            log.warning("Failed to create tables!");
+            log.warning(e.getMessage());
+            throw e;
+        } finally {
             connection.close();
         }
     }
 
     public String generateToken(PlayerProfile p) throws SQLException {
+        Connection connection = getConnection();
+
         String token = UUID.randomUUID().toString();
         String now = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME);
         try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO tokens (token, uuid, username, created_at) VALUES (?, ?, ?, ?)")) {
@@ -48,12 +69,16 @@ public class UsersDatabase {
             preparedStatement.setString(3, p.getName());
             preparedStatement.setString(4, now);
             preparedStatement.executeUpdate();
+        } finally {
+            connection.close();
         }
 
         return token;
     }
 
     public boolean authorizeUser(String token, String userId) throws SQLException {
+        Connection connection = getConnection();
+
         ResultSet resultSet;
         String uuid, username;
         LocalDateTime expireDate;
@@ -89,10 +114,16 @@ public class UsersDatabase {
     }
 
     public boolean isAuthorized(String uuid) throws SQLException {
+        Connection connection = getConnection();
+        boolean ret;
         try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM authorized_players WHERE uuid = ?")) {
             preparedStatement.setString(1, uuid);
             ResultSet resultSet = preparedStatement.executeQuery();
-            return resultSet.next();
+            ret = resultSet.next();
+        } finally {
+            connection.close();
         }
+
+        return ret;
     }
 }

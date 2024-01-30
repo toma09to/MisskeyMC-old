@@ -1,6 +1,7 @@
 package com.toma09to.misskeymc;
 
 import com.toma09to.misskeymc.api.MisskeyAuthorizationScheduler;
+import com.toma09to.misskeymc.api.MisskeyLogger;
 import com.toma09to.misskeymc.api.MisskeyNoteScheduler;
 import com.toma09to.misskeymc.database.UsersDatabase;
 import com.toma09to.misskeymc.listeners.MisskeyChatListener;
@@ -15,6 +16,7 @@ import java.sql.SQLException;
 
 public final class MisskeyMC extends JavaPlugin {
     private MisskeyClient misskey;
+    private MisskeyLogger log;
     private String enabledMessage;
     private String disabledMessage;
     private MisskeyNoteScheduler noteScheduler;
@@ -49,15 +51,15 @@ public final class MisskeyMC extends JavaPlugin {
         String dbUser = getConfig().getString("database.username");
         String dbPassword = getConfig().getString("database.password");
 
+        misskey = new MisskeyClient(address, token, visibility, localOnly, channelId, prefix, isDebug);
+        log = new MisskeyLogger(Bukkit.getLogger());
+
         try {
             // Connect to MySQL
-            database = new UsersDatabase(dbHost, dbDatabase, dbUser, dbPassword);
+            database = new UsersDatabase(log, dbHost, dbDatabase, dbUser, dbPassword);
         } catch (SQLException e) {
-            Bukkit.getLogger().warning("Failed to connect to the database!" + e.getMessage());
             Bukkit.getPluginManager().disablePlugin(this);
         }
-
-        misskey = new MisskeyClient(address, token, visibility, localOnly, channelId, prefix, isDebug);
 
         Bukkit.getServer().getPluginManager().registerEvents(
                 new PlayerJoinLeaveListener(misskey, serverUrl, joinMessage, quitMessage),
@@ -90,11 +92,6 @@ public final class MisskeyMC extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        try {
-            database.closeConnection();
-        } catch (SQLException e) {
-            Bukkit.getLogger().warning("Failed to close connection to the database!" + e.getMessage());
-        }
         noteScheduler.stopTask();
         authorizationScheduler.stopTask();
         misskey.postNote(disabledMessage, null);
