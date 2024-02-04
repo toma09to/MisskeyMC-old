@@ -25,7 +25,7 @@ public final class MisskeyMC extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        saveResource("config.yml", false);
+        saveDefaultConfig();
 
         String address = getConfig().getString("misskey.address");
         String token = getConfig().getString("misskey.token");
