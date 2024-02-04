@@ -5,6 +5,7 @@ misskey:
   localOnly: false
   channelId: ""
   prefix: "[Server] "
+  getMessageFrequency: 100
   debug: false
   serverUrl: "https://misskey.example.com"
 

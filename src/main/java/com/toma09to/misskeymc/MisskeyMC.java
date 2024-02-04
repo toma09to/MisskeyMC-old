@@ -33,6 +33,7 @@ public final class MisskeyMC extends JavaPlugin {
         boolean localOnly = getConfig().getBoolean("misskey.localOnly");
         String channelId = getConfig().getString("misskey.channelId");
         String prefix = getConfig().getString("misskey.prefix");
+        int getMessageFrequency = getConfig().getInt("misskey.getMessageFrequency");
         boolean isDebug = getConfig().getBoolean("misskey.debug");
         String serverUrl = getConfig().getString("misskey.serverUrl");
 
@@ -75,7 +76,7 @@ public final class MisskeyMC extends JavaPlugin {
         );
 
         noteScheduler = new MisskeyNoteScheduler(misskey);
-        noteScheduler.runTaskTimerAsynchronously(this, 0, 20);
+        noteScheduler.runTaskTimerAsynchronously(this, 0, getMessageFrequency);
 
         String botName = misskey.username();
         if (requireAuthorization) {
@@ -84,7 +85,7 @@ public final class MisskeyMC extends JavaPlugin {
                     this
             );
             authorizationScheduler = new MisskeyAuthorizationScheduler(misskey, database);
-            authorizationScheduler.runTaskTimerAsynchronously(this, 0, 100);
+            authorizationScheduler.runTaskTimerAsynchronously(this, 0, getMessageFrequency);
         }
 
         misskey.postNote(enabledMessage, null);
