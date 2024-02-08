@@ -95,9 +95,10 @@ public class MisskeyClient {
 
         MisskeyNoteJson[] messages = gson.fromJson(responseBody, MisskeyNoteJson[].class);
         if (messages.length == 0) return null;
-        if (messages[0].user.isBot) return null;
 
         channelSinceId = messages[0].id;
+
+        if (messages[0].user.isBot) return null;
         return messages[0];
     }
     public MisskeyNoteJson getDirectMessage() {
@@ -110,9 +111,10 @@ public class MisskeyClient {
 
         MisskeyNoteJson[] messages = gson.fromJson(responseBody, MisskeyNoteJson[].class);
         if (messages.length == 0) return null;
-        if (messages[0].user.isBot) return null;
 
         mentionSinceId = messages[0].id;
+
+        if (messages[0].user.isBot) return null;
         return !isFirst ? messages[0] : null;
     }
 }
